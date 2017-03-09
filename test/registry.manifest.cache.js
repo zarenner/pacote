@@ -50,6 +50,7 @@ const OPTS = {
     minTimeout: 1,
     maxTimeout: 10
   },
+  hashAlgorithm: 'sha1',
   metadata: {
     etag: 'my-etage',
     lastModified: 'my-lastmodified',
@@ -121,7 +122,7 @@ test('inflights concurrent requests', t => {
 test('supports fetching from an optional cache', t => {
   tnock(t, OPTS.registry)
   const key = cache.key('registry-request', OPTS.registry + '/foo')
-  return cache.put(CACHE, key, JSON.stringify(META), OPTS).then(() => {
+  return cache.put(CACHE, key, JSON.stringify(META), OPTS).then(digest => {
     return manifest('foo@1.2.3', OPTS).then(pkg => {
       t.deepEqual(pkg, PKG)
     })
