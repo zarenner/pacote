@@ -1,6 +1,7 @@
 'use strict'
 
 const BB = require('bluebird')
+const Buffer = require('safe-buffer').Buffer
 
 const cache = require('../lib/cache')
 const npmlog = require('npmlog')
@@ -288,6 +289,29 @@ test('caches finalized manifests', t => {
       }).then(manifest2 => {
         t.deepEqual(manifest2, manifest1, 'got cached manifest')
       })
+    })
+  })
+})
+
+test('verifies signed integrity hashes', {
+  skip: 'this needs to be generalized beyond a single user'
+}, t => {
+  const sig = Buffer.from('BEGIN KEYBASE SALTPACK SIGNED MESSAGE. kXR7VktZdyH7rvq v5wcIkHbs9Qz0Zz nAhgpOwcallHkPO nAI3L2AiBavPo5M COmRtMxaPdJzcX1 hvLffmrcxTbhX81 CGsyfcsVDOajdv7 rFRW6m8B1tygggk gCSyc6tQZYUVoQI G8PABl2gUC4FWeB J5oXOQdEhkfqfSp RqjSmnIHFXfvUP6 wLsOEhpJSJwqp7R xt5AGJK9B3ll9di kjXx6q5o2uojCDy ZXGnJKW2PUdUsf9 3hoqgcpsvOG99bE 9FO5SJOTAXDxPhf wcKKizdwN4NmX1a KjJIMoFbGNc. END KEYBASE SALTPACK SIGNED MESSAGE.\n', 'utf8').toString('base64')
+  const base = {
+    name: 'testing',
+    version: '1.2.3',
+    _resolved: 'resolved.to.this',
+    _integrity: `sha1-foobarbaz?sig-zkat:${sig}`,
+    _hasShrinkwrap: false
+  }
+  return finalizeManifest(base, {}, OPTS).then(manifest => {
+    t.ok(true, 'signature verification succeeded')
+    cache.clearMemoized()
+    base._integrity = base._integrity.replace(/foo/, 'f00')
+    return finalizeManifest(base, {}, OPTS).then(x => {
+      throw new Error('was not supposed to succeed')
+    }, err => {
+      t.equal(err.code, 'EBADSIG', 'got correct signature failure code')
     })
   })
 })
