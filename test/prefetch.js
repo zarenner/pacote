@@ -18,6 +18,7 @@ const BASE = {
   version: '1.0.0',
   _hasShrinkwrap: false,
   _resolved: 'https://foo.bar/x.tgz',
+  _integrity: null,
   dist: {
     tarball: 'https://foo.bar/x.tgz'
   }
@@ -52,8 +53,14 @@ test('prefetch by manifest if no integrity hash', t => {
     srv.get('/foo').reply(200, META)
     tnock(t, 'https://foo.bar').get('/x.tgz').reply(200, tarData)
 
-    return prefetch('foo@1.0.0', OPTS).then(() => {
+    return prefetch('foo@1.0.0', OPTS).then(info => {
       t.equal(srv.isDone(), true)
+      t.deepEqual(info, {
+        byDigest: false,
+        integrity: null, // not previously cached, so no integrity
+        manifest: BASE,
+        spec: 'foo@1.0.0'
+      }, 'fresh fetch info returned')
       return cache.ls(CACHE)
     }).then(result => {
       t.equal(Object.keys(result).length, 2)
